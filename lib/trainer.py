@@ -12,7 +12,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from tensorboardX import SummaryWriter
 
-from sklearn.metrics import roc_auc_score, log_loss
+from sklearn.metrics import roc_auc_score, log_loss, accuracy_score
 
 
 class Trainer(nn.Module):
@@ -169,3 +169,14 @@ class Trainer(nn.Module):
             y_test = torch.tensor(y_test)
             logloss = log_loss(check_numpy(to_one_hot(y_test)), logits)
         return logloss
+
+    def evaluate_accuracy(self, X_test, y_test, device, batch_size=512):
+        X_test = torch.as_tensor(X_test, device=device)
+        y_test = check_numpy(y_test)
+        self.model.train(False)
+        with torch.no_grad():
+            prediction = process_in_chunks(self.model, X_test, batch_size=batch_size)
+            prediction = check_numpy(prediction)
+            prediction = np.argmax(prediction, axis=1)
+            accuracy = accuracy_score(y_test, prediction)
+        return accuracy
